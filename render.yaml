@@ -16,5 +16,7 @@ services:
         value: fuad-testing-travel-agent
       - key: API_KEY
         sync: false
+      - key: ARIZE_OTLP_ENDPOINT
+        sync: false
       - key: DEFAULT_MODEL
         value: claude-sonnet-4-5

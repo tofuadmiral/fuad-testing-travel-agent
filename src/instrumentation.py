@@ -26,7 +26,13 @@ def init() -> None:
     from arize.otel import register_with_routing
     from openinference.instrumentation.anthropic import AnthropicInstrumentor
 
-    tracer_provider = register_with_routing(api_key=api_key)
+    kwargs: dict = {"api_key": api_key}
+    endpoint = os.getenv("ARIZE_OTLP_ENDPOINT")
+    if endpoint:
+        kwargs["endpoint"] = endpoint
+        log.info("Arize OTLP endpoint override: %s", endpoint)
+
+    tracer_provider = register_with_routing(**kwargs)
     AnthropicInstrumentor().instrument(tracer_provider=tracer_provider)
     _routing_enabled = True
 
