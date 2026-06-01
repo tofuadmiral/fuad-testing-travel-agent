@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from opentelemetry.propagate import extract
 from pydantic import BaseModel, ConfigDict
 
 from . import instrumentation
@@ -79,6 +80,7 @@ async def root():
 
 @app.post("/invoke")
 async def invoke(
+    request: Request,
     req: InvokeRequest,
     authed: bool = Depends(optional_bearer_auth),
     x_arize_experiment_id: str | None = Header(default=None, alias="x-arize-experiment-id"),
@@ -113,6 +115,10 @@ async def invoke(
         exp_id,
         run_id,
     )
+    # Extract W3C trace context (traceparent/tracestate/baggage) from incoming
+    # headers so our CHAIN span becomes a child of whatever Arize started.
+    parent_context = extract(dict(request.headers))
+
     return await run_agent(
         goal=goal,
         config=config,
@@ -120,6 +126,7 @@ async def invoke(
         experiment_run_id=run_id,
         space_id=space_id,
         project_name=project_name,
+        parent_context=parent_context,
     )
 
 

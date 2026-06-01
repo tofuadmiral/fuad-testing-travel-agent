@@ -9,6 +9,8 @@ from claude_agent_sdk import (
     create_sdk_mcp_server,
     query,
 )
+from opentelemetry.context import Context
+from opentelemetry.propagate import extract
 
 from .instrumentation import routing, tracer
 from .tools import ALL_TOOLS, tool_calls_var
@@ -48,6 +50,7 @@ async def run_agent(
     experiment_run_id: str | None = None,
     space_id: str | None = None,
     project_name: str | None = None,
+    parent_context: Context | None = None,
 ) -> dict[str, Any]:
     tool_calls: list[dict[str, Any]] = []
     tool_calls_var.set(tool_calls)
@@ -68,7 +71,9 @@ async def run_agent(
     result_text: str | None = None
     trace_id: str | None = None
 
-    with routing(space_id, project_name), tracer().start_as_current_span("run_agent") as chain_span:
+    with routing(space_id, project_name), tracer().start_as_current_span(
+        "run_agent", context=parent_context
+    ) as chain_span:
         chain_span.set_attribute("openinference.span.kind", "CHAIN")
         chain_span.set_attribute("input.value", goal)
         chain_span.set_attribute("agent.model", model)
