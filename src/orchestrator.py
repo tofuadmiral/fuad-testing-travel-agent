@@ -9,8 +9,7 @@ from claude_agent_sdk import (
     create_sdk_mcp_server,
     query,
 )
-from opentelemetry.context import Context
-from opentelemetry.propagate import extract
+from opentelemetry.context import Context, attach, detach
 
 from .instrumentation import routing, tracer
 from .tools import ALL_TOOLS, tool_calls_var
@@ -71,28 +70,38 @@ async def run_agent(
     result_text: str | None = None
     trace_id: str | None = None
 
-    with routing(space_id, project_name), tracer().start_as_current_span(
-        "run_agent", context=parent_context
-    ) as chain_span:
-        chain_span.set_attribute("openinference.span.kind", "CHAIN")
-        chain_span.set_attribute("input.value", goal)
-        chain_span.set_attribute("agent.model", model)
-        if experiment_id:
-            chain_span.set_attribute("arize.experiment.id", experiment_id)
-        if experiment_run_id:
-            chain_span.set_attribute("arize.experiment.run.id", experiment_run_id)
-        trace_id = format(chain_span.get_span_context().trace_id, "032x")
+    # Attach the W3C trace context first so the new span inherits its
+    # traceparent. Then enter the routing context on top, so the span ALSO
+    # picks up arize.space_id / arize.project_name. Finally start the span
+    # without an explicit `context=` override — it must inherit both.
+    parent_token = attach(parent_context) if parent_context else None
+    final = ""
+    try:
+        with routing(space_id, project_name), tracer().start_as_current_span(
+            "run_agent"
+        ) as chain_span:
+            chain_span.set_attribute("openinference.span.kind", "CHAIN")
+            chain_span.set_attribute("input.value", goal)
+            chain_span.set_attribute("agent.model", model)
+            if experiment_id:
+                chain_span.set_attribute("arize.experiment.id", experiment_id)
+            if experiment_run_id:
+                chain_span.set_attribute("arize.experiment.run.id", experiment_run_id)
+            trace_id = format(chain_span.get_span_context().trace_id, "032x")
 
-        async for message in query(prompt=goal, options=options):
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        final_text_parts.append(block.text)
-            elif isinstance(message, ResultMessage):
-                result_text = getattr(message, "result", None)
+            async for message in query(prompt=goal, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            final_text_parts.append(block.text)
+                elif isinstance(message, ResultMessage):
+                    result_text = getattr(message, "result", None)
 
-        final = result_text or "\n".join(final_text_parts).strip()
-        chain_span.set_attribute("output.value", final or "")
+            final = result_text or "\n".join(final_text_parts).strip()
+            chain_span.set_attribute("output.value", final or "")
+    finally:
+        if parent_token is not None:
+            detach(parent_token)
 
     itinerary = next(
         (c["output"] for c in reversed(tool_calls) if c["name"] == "propose_itinerary"),
