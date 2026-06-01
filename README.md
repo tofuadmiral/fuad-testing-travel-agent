@@ -1,6 +1,6 @@
 # fuad-testing-travel-agent
 
-A small travel-planning agent built on the [Claude Agent SDK](https://docs.claude.com/en/agent-sdk/python), exposed as a public HTTP endpoint and traced into [Arize AX](https://arize.com/docs/ax). Used to dogfood the [Agent Replay](https://www.notion.so/Agent-Replay-PRD-2cd6abf4ec3c80a88a67ecf6147432cd) feature end-to-end.
+A small travel-planning agent built on the [Claude Agent SDK](https://docs.claude.com/en/agent-sdk/python), exposed as a public HTTP endpoint and traced into [Arize AX](https://arize.com/docs/ax). Used as a test target for agent endpoint experiments.
 
 ## What it does
 
