@@ -5,8 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from . import instrumentation
@@ -20,6 +22,22 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger(__name__)
 
 app = FastAPI(title="fuad-testing-travel-agent", version="0.1.0")
+
+
+@app.exception_handler(RequestValidationError)
+async def log_422(request: Request, exc: RequestValidationError):
+    body = await request.body()
+    log.warning(
+        "422 on %s: errors=%s raw_body=%r headers=%s",
+        request.url.path,
+        exc.errors(),
+        body[:2000],
+        dict(request.headers),
+    )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
