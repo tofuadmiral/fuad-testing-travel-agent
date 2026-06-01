@@ -9,7 +9,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from . import instrumentation
 
@@ -47,9 +47,12 @@ app.add_middleware(
 
 
 class InvokeRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     goal: str | None = None
-    input: str | None = None
+    input: str | dict | None = None
     config: dict | None = None
+    arize_metadata: dict | None = None
 
 
 @app.get("/healthz")
@@ -75,20 +78,33 @@ async def invoke(
         default=None, alias="x-arize-experiment-run-id"
     ),
 ):
-    goal = req.goal or req.input
+    goal: str | None = None
+    config: dict | None = req.config
+    if isinstance(req.input, dict):
+        goal = req.input.get("goal") or req.input.get("input")
+        if not config:
+            config = req.input.get("config")
+    elif isinstance(req.input, str):
+        goal = req.input
+    goal = req.goal or goal
+
     if not goal:
         raise HTTPException(status_code=400, detail="provide `goal` or `input`")
+
+    md = req.arize_metadata or {}
+    exp_id = x_arize_experiment_id or md.get("experiment_id")
+    run_id = x_arize_experiment_run_id or md.get("run_id")
 
     log.info(
         "invoke: goal=%r authed=%s experiment_id=%s run_id=%s",
         goal[:80],
         authed,
-        x_arize_experiment_id,
-        x_arize_experiment_run_id,
+        exp_id,
+        run_id,
     )
     return await run_agent(
         goal=goal,
-        config=req.config,
-        experiment_id=x_arize_experiment_id,
-        experiment_run_id=x_arize_experiment_run_id,
+        config=config,
+        experiment_id=exp_id,
+        experiment_run_id=run_id,
     )
