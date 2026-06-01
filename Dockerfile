@@ -15,6 +15,12 @@ RUN pip install --no-cache-dir -e . || true
 COPY . .
 RUN pip install --no-cache-dir -e .
 
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+ENV HOME=/home/app
+ENV PATH="/home/app/.local/bin:${PATH}"
+
 ENV PORT=8000
 EXPOSE 8000
 
