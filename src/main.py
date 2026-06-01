@@ -8,7 +8,7 @@ load_dotenv()
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict
 
 from . import instrumentation
@@ -60,13 +60,21 @@ async def healthz():
     return {"ok": True, "service": "fuad-testing-travel-agent"}
 
 
+_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+
+
 @app.get("/")
 async def root():
-    return {
-        "service": "fuad-testing-travel-agent",
-        "endpoints": ["/healthz", "/invoke"],
-        "docs": "/docs",
-    }
+    index_path = os.path.join(_STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse(
+        {
+            "service": "fuad-testing-travel-agent",
+            "endpoints": ["/healthz", "/invoke"],
+            "docs": "/docs",
+        }
+    )
 
 
 @app.post("/invoke")
