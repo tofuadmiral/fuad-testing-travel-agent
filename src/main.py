@@ -7,7 +7,7 @@ load_dotenv()
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from . import instrumentation
 
@@ -29,9 +29,12 @@ app.add_middleware(
 
 
 class InvokeRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     goal: str | None = None
     input: str | None = None
     config: dict | None = None
+    arize_metadata: dict | None = None
 
 
 @app.get("/healthz")
