@@ -1,0 +1,21 @@
+input,expected_destination,expected_days
+Plan a 3-day trip to Tokyo from SF in October,Tokyo,3
+Weekend in NYC from Chicago,NYC,2
+Plan a 5-day honeymoon in Italy departing from Boston,Italy,5
+4-day trip to Lisbon from LAX in early spring,Lisbon,4
+Quick 2-day getaway to Mexico City from Austin,Mexico City,2
+Plan a week-long family vacation in Orlando from Seattle,Orlando,7
+3-day solo backpacking trip to Reykjavik from NYC,Reykjavik,3
+Long weekend in New Orleans from Denver,New Orleans,3
+6-day cultural trip to Kyoto from SFO in cherry blossom season,Kyoto,6
+3-day business + leisure trip to London from Toronto,London,3
+4-day surf trip to Lima from Miami,Lima,4
+Plan a 5-day ski trip to Aspen from JFK in February,Aspen,5
+Romantic 4-day getaway to Paris from Atlanta,Paris,4
+2-day food-focused trip to Mexico City from Houston,Mexico City,2
+5-day adventure trip to Patagonia from LAX,Patagonia,5
+3-day beach trip to Tulum from Chicago,Tulum,3
+4-day winter trip to Banff from Boston,Banff,4
+Weekend in Charleston from DC,Charleston,2
+6-day photography trip to Iceland from Newark,Iceland,6
+3-day wellness retreat in Sedona from LAX,Sedona,3

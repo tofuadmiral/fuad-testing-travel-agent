@@ -77,6 +77,7 @@ async def invoke(
     x_arize_experiment_run_id: str | None = Header(
         default=None, alias="x-arize-experiment-run-id"
     ),
+    baggage_header: str | None = Header(default=None, alias="baggage"),
 ):
     goal: str | None = None
     config: dict | None = req.config
@@ -95,6 +96,8 @@ async def invoke(
     exp_id = x_arize_experiment_id or md.get("experiment_id")
     run_id = x_arize_experiment_run_id or md.get("run_id")
 
+    space_id, project_name = _resolve_routing(md, baggage_header)
+
     log.info(
         "invoke: goal=%r authed=%s experiment_id=%s run_id=%s",
         goal[:80],
@@ -107,4 +110,41 @@ async def invoke(
         config=config,
         experiment_id=exp_id,
         experiment_run_id=run_id,
+        space_id=space_id,
+        project_name=project_name,
     )
+
+
+def _resolve_routing(md: dict, baggage_header: str | None) -> tuple[str | None, str | None]:
+    """Pick the Arize space_id + project_name for this request.
+
+    Priority:
+      1. arize_metadata.space_id / arize_metadata.project_name (request body)
+      2. W3C baggage header: `arize.space_id=...,arize.project_name=...`
+      3. None — caller falls back to env defaults
+    """
+    space_id = md.get("space_id")
+    project_name = md.get("project_name")
+
+    if not (space_id and project_name) and baggage_header:
+        bag = _parse_baggage(baggage_header)
+        space_id = space_id or bag.get("arize.space_id") or bag.get("space_id")
+        project_name = (
+            project_name or bag.get("arize.project_name") or bag.get("project_name")
+        )
+
+    return space_id, project_name
+
+
+def _parse_baggage(header: str) -> dict[str, str]:
+    """Parse W3C baggage header: `key1=value1,key2=value2; metadata`."""
+    from urllib.parse import unquote
+
+    out: dict[str, str] = {}
+    for entry in header.split(","):
+        entry = entry.strip().split(";", 1)[0]
+        if "=" not in entry:
+            continue
+        k, v = entry.split("=", 1)
+        out[unquote(k.strip())] = unquote(v.strip())
+    return out
