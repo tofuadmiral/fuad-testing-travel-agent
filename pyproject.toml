@@ -1,0 +1,26 @@
+[project]
+name = "fuad-testing-travel-agent"
+version = "0.1.0"
+description = "Travel planning agent test endpoint for Arize Agent Replay"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "claude-agent-sdk>=0.0.10",
+    "arize-otel>=0.7.0",
+    "openinference-instrumentation-anthropic>=0.1.16",
+    "openinference-semantic-conventions>=0.1.14",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+    "anthropic>=0.40",
+    "pydantic>=2.9",
+    "python-dotenv>=1.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
