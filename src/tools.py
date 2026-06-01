@@ -1,3 +1,4 @@
+import contextvars
 import json
 import random
 from typing import Any
@@ -6,7 +7,11 @@ from claude_agent_sdk import tool
 
 from .instrumentation import tracer
 
-TOOL_CALLS: list[dict[str, Any]] = []
+# Per-request list of tool calls. Each request sets a fresh list at entry so
+# concurrent requests don't see each other's tool calls.
+tool_calls_var: contextvars.ContextVar[list[dict[str, Any]] | None] = contextvars.ContextVar(
+    "tool_calls", default=None
+)
 
 
 def _seeded(args: dict[str, Any]) -> random.Random:
@@ -14,7 +19,9 @@ def _seeded(args: dict[str, Any]) -> random.Random:
 
 
 def _record(name: str, args: dict[str, Any], result: dict[str, Any]) -> None:
-    TOOL_CALLS.append({"name": name, "input": args, "output": result})
+    calls = tool_calls_var.get()
+    if calls is not None:
+        calls.append({"name": name, "input": args, "output": result})
 
 
 def _wrap(name: str, args: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:

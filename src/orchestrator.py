@@ -11,7 +11,7 @@ from claude_agent_sdk import (
 )
 
 from .instrumentation import tracer
-from .tools import ALL_TOOLS, TOOL_CALLS
+from .tools import ALL_TOOLS, tool_calls_var
 
 SYSTEM_PROMPT = """You are a travel planning agent.
 
@@ -47,7 +47,8 @@ async def run_agent(
     experiment_id: str | None = None,
     experiment_run_id: str | None = None,
 ) -> dict[str, Any]:
-    TOOL_CALLS.clear()
+    tool_calls: list[dict[str, Any]] = []
+    tool_calls_var.set(tool_calls)
     cfg = config or {}
     model = cfg.get("model", os.getenv("DEFAULT_MODEL", "claude-sonnet-4-5"))
     max_turns = int(cfg.get("max_turns", 12))
@@ -87,14 +88,14 @@ async def run_agent(
         chain_span.set_attribute("output.value", final or "")
 
     itinerary = next(
-        (c["output"] for c in reversed(TOOL_CALLS) if c["name"] == "propose_itinerary"),
+        (c["output"] for c in reversed(tool_calls) if c["name"] == "propose_itinerary"),
         None,
     )
 
     return {
         "final_response": final,
         "itinerary": itinerary,
-        "tool_calls": list(TOOL_CALLS),
+        "tool_calls": list(tool_calls),
         "trace_id": trace_id,
         "model": model,
     }
